@@ -1,6 +1,6 @@
 // src/App.js
 import React from 'react';
-import DailyWord from '../../mobile/components/DailyWord';
+import DailyWord from './components/DailyWord';      // ← fixed path
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SignUp from './pages/SignUp';
 import LanguageSelect from './pages/LanguageSelect';
@@ -8,7 +8,7 @@ import PhraseBank from './pages/PhraseBank';
 import AddPhrase from './pages/AddPhrase';
 import Flashcards from './pages/Flashcards';
 import Speaking from './pages/Speaking';
-import Suggestions from './pages/Suggestions'; // ✅ Imported Suggestions
+import Suggestions from './pages/Suggestions';
 import './App.css';
 
 function App() {
@@ -24,7 +24,7 @@ function App() {
             <Route path="/phrases" element={<PhraseBank />} />
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/speaking" element={<Speaking />} />
-            <Route path="/suggestions" element={<Suggestions />} /> {/* ✅ New route */}
+            <Route path="/suggestions" element={<Suggestions />} />
           </Routes>
         </BrowserRouter>
       </div>
