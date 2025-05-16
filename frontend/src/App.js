@@ -8,6 +8,7 @@ import LanguageSelect from './pages/LanguageSelect';
 import PhraseBank from './pages/PhraseBank';
 import AddPhrase from './pages/AddPhrase';
 import Quiz from './pages/Quiz';
+import ReviewQueue from './pages/ReviewQueue'; // ✅ Added
 import Dictionary from './pages/Dictionary';
 import SearchResults from './pages/SearchResults';
 import Flashcards from './pages/Flashcards';
@@ -30,6 +31,7 @@ function App() {
               <Link to="/flashcards" style={{ textDecoration: 'none' }}>🃏 Flashcards</Link>
               <Link to="/phrases" style={{ textDecoration: 'none' }}>📚 Phrase Bank</Link>
               <Link to="/quiz" style={{ textDecoration: 'none' }}>🧠 Quiz</Link>
+              <Link to="/reviews" style={{ textDecoration: 'none' }}>🕒 Reviews</Link> {/* ✅ Added */}
             </nav>
           </header>
 
@@ -45,6 +47,7 @@ function App() {
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/speaking" element={<Speaking />} />
             <Route path="/suggestions" element={<Suggestions />} />
+            <Route path="/reviews" element={<ReviewQueue />} /> {/* ✅ Added */}
           </Routes>
         </BrowserRouter>
       </div>
