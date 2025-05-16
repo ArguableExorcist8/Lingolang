@@ -8,22 +8,21 @@ function SignUp() {
   const [name, setName] = useState('');
   const navigate = useNavigate();
 
-const handleSubmit = async e => {
-  e.preventDefault();
-  try {
-    const res = await axios.post('/api/signup', { name, email });
-    console.log('Signup response:', res.data);
-    
-    // ✅ Save user to localStorage for use in LanguageSelect
-    localStorage.setItem('lastSignup', JSON.stringify(res.data));
-    
-    navigate('/languages');
-  } catch (err) {
-    console.error('Signup error', err.response || err);
-    alert('Signup failed – check console for details.');
-  }
-};
+  const handleSubmit = async e => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('/api/signup', { name, email });
+      console.log('Signup response:', res.data);
 
+      // ✅ Save user to localStorage for use in LanguageSelect
+      localStorage.setItem('lastSignup', JSON.stringify(res.data));
+
+      navigate('/languages');
+    } catch (err) {
+      console.error('Signup error', err.response || err);
+      alert('Signup failed – check console for details.');
+    }
+  };
 
   return (
     <div style={{ maxWidth: 400, margin: '2rem auto', fontFamily: 'sans-serif' }}>
@@ -53,6 +52,11 @@ const handleSubmit = async e => {
           Sign Up
         </button>
       </form>
+
+      {/* ✅ Link to Flashcards page */}
+      <p style={{ marginTop: '1rem' }}>
+        <a href="/flashcards">Go to Flashcards</a>
+      </p>
     </div>
   );
 }
