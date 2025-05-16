@@ -9,8 +9,9 @@ function Flashcards() {
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
-    axios.get('/api/flashcards')
-      .then(res => setCards(res.data))
+    axios
+      .get('/api/flashcards')
+      .then((res) => setCards(res.data))
       .catch(console.error);
   }, []);
 
@@ -18,7 +19,15 @@ function Flashcards() {
     const card = cards[index];
     await axios.post(`/api/flashcards/${card.id}/review`, { quality });
     setIsFlipped(false);
-    setIndex(i => i + 1);
+    setIndex((i) => i + 1);
+  };
+
+  const saveToFavorites = (word) => {
+    const existing = JSON.parse(localStorage.getItem('lingolang-favorites')) || [];
+    if (!existing.includes(word)) {
+      const updated = [...existing, word];
+      localStorage.setItem('lingolang-favorites', JSON.stringify(updated));
+    }
   };
 
   if (index >= cards.length) {
@@ -64,6 +73,7 @@ function Flashcards() {
       <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-around' }}>
         <button onClick={() => review(2)}>Again ❌</button>
         <button onClick={() => review(5)}>Good ✔️</button>
+        <button onClick={() => saveToFavorites(front)}>⭐ Save</button>
       </div>
     </div>
   );
