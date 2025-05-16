@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ThemeSwitcher from './ThemeSwitcher';
 
 export default function Header() {
   const [query, setQuery] = useState('');
   const [streak, setStreak] = useState(0);
   const navigate = useNavigate();
 
-  // Load & update streak
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
     const { lastDate, count } = JSON.parse(localStorage.getItem('lingolang-streak') || '{}');
@@ -19,13 +19,11 @@ export default function Header() {
       setStreak(newCount);
     }
 
-    // 📌 Notification logic
     (async () => {
       if ('Notification' in window && Notification.permission !== 'denied') {
         const perm = await Notification.requestPermission();
         if (perm !== 'granted') return;
       }
-
       try {
         const res = await fetch('/api/flashcards');
         const due = await res.json();
@@ -59,13 +57,13 @@ export default function Header() {
       <form onSubmit={onSearch} style={{ marginLeft: 'auto' }}>
         <input
           type="text" placeholder="Search words..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
+          value={query} onChange={e => setQuery(e.target.value)}
           style={{ padding: '0.25rem', width: '150px' }}
         />
         <button type="submit">🔍</button>
       </form>
       <div>🔥 Streak: {streak} day{streak > 1 ? 's' : ''}</div>
+      <ThemeSwitcher />
     </header>
   );
 }
