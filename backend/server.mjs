@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Setup DB with default structure
 const dbFile = path.join(__dirname, 'db.json');
 const adapter = new JSONFile(dbFile);
-const db = new Low(adapter, { signups: [] }); // ✅ Add default here
+const db = new Low(adapter, { signups: [] }); 
 
 await db.read();
 await db.write();
@@ -35,6 +35,22 @@ app.post('/api/signup', async (req, res) => {
   await db.write();
 
   return res.status(201).json({ message: 'Signup successful', user: newEntry });
+});
+
+app.post('/api/languages', async (req, res) => {
+  const { userId, languages } = req.body;
+  if (!userId || !Array.isArray(languages)) {
+    return res.status(400).json({ error: 'userId and languages[] required' });
+  }
+  await db.read();
+  // attach languages to the user entry
+  const user = db.data.signups.find(u => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  user.languages = languages;
+  await db.write();
+  res.json({ message: 'Languages saved', user });
 });
 
 // GET /api/health
