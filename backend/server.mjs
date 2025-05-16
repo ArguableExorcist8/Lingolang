@@ -8,37 +8,72 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 
 // __dirname fix for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Multer setup for uploads
-const upload = multer({ dest: path.join(__dirname, 'uploads/') });
+// Multer setup for uploads (only images & audio)
+const upload = multer({
+  dest: path.join(__dirname, 'uploads/'),
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype.startsWith('image/') ||
+      file.mimetype.startsWith('audio/')
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image and audio files are allowed'), false);
+    }
+  }
+});
 
-// LowDB setup with default data
+// LowDB setup with defaults
 const dbFile = path.join(__dirname, 'db.json');
 const adapter = new JSONFile(dbFile);
 const db = new Low(adapter, {
   signups: [],
   phrases: [],
-  flashcards: []
+  flashcards: [],
+  suggestions: []
 });
 
 // Read (and create) DB file with defaults
 await db.read();
+db.data ||= { signups: [], phrases: [], flashcards: [], suggestions: [] };
+await db.write();
 
 // Express setup
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads/')));
+
+// Optional: Serve frontend build if it exists
+const frontendBuild = path.join(__dirname, 'frontend', 'build');
+if (fs.existsSync(frontendBuild)) {
+  app.use(express.static(frontendBuild));
+  app.get('*', (req, res, next) => {
+    // only serve index.html for non-API requests
+    if (!req.path.startsWith('/api/') && !req.path.startsWith('/uploads/')) {
+      res.sendFile(path.join(frontendBuild, 'index.html'));
+    } else {
+      next();
+    }
+  });
+}
+
 // --- ROUTES ---
 
 // 1. Signup
 app.post('/api/signup', async (req, res) => {
   const { name, email } = req.body;
-  if (!name || !email) return res.status(400).json({ error: 'Name and email are required.' });
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and email are required.' });
+  }
 
   await db.read();
   const newUser = { id: Date.now(), name, email };
@@ -51,8 +86,9 @@ app.post('/api/signup', async (req, res) => {
 // 2. Save languages
 app.post('/api/languages', async (req, res) => {
   const { userId, languages } = req.body;
-  if (!userId || !Array.isArray(languages))
+  if (!userId || !Array.isArray(languages)) {
     return res.status(400).json({ error: 'userId and languages[] required' });
+  }
 
   await db.read();
   const user = db.data.signups.find(u => u.id === userId);
@@ -78,8 +114,11 @@ app.post(
   ]),
   async (req, res) => {
     const { text, language } = req.body;
-    if (!text || !language)
-      return res.status(400).json({ error: 'Text and language are required.' });
+    if (!text || !language) {
+      return res
+        .status(400)
+        .json({ error: 'Text and language are required.' });
+    }
 
     await db.read();
     const newPhrase = {
@@ -109,32 +148,38 @@ app.post('/api/flashcards/generate', async (req, res) => {
     ease: 2.5
   }));
   await db.write();
-  res.json({ message: 'Flashcards generated', count: db.data.flashcards.length });
+  res.json({
+    message: 'Flashcards generated',
+    count: db.data.flashcards.length
+  });
 });
 
 // 6. Get due flashcards
 app.get('/api/flashcards', async (req, res) => {
   await db.read();
   const now = new Date();
-  const due = db.data.flashcards.filter(f => new Date(f.nextReview) <= now);
+  const due = db.data.flashcards.filter(
+    f => new Date(f.nextReview) <= now
+  );
   res.json(due);
 });
 
-// 7. Review a flashcard (SM-2 algorithm)
+// 7. Review a flashcard (SM‑2 algorithm)
 app.post('/api/flashcards/:id/review', async (req, res) => {
   const { quality } = req.body; // 0–5
   await db.read();
   const card = db.data.flashcards.find(f => f.id === req.params.id);
   if (!card) return res.status(404).json({ error: 'Flashcard not found' });
 
-  // SM-2 spaced repetition update
   if (quality < 3) {
     card.interval = 1;
   } else {
     card.interval = Math.ceil(card.interval * card.ease);
-    card.ease += 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02);
-    if (card.ease < 1.3) card.ease = 1.3;
+    card.ease +=
+      0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02);
+    if (isNaN(card.ease) || card.ease < 1.3) card.ease = 1.3;
   }
+
   const next = new Date();
   next.setDate(next.getDate() + card.interval);
   card.nextReview = next.toISOString();
@@ -143,7 +188,32 @@ app.post('/api/flashcards/:id/review', async (req, res) => {
   res.json({ message: 'Review recorded', card });
 });
 
-// 8. Health check
+// 8. POST a suggestion
+app.post('/api/suggestions', async (req, res) => {
+  const { author, suggestion } = req.body;
+  if (!suggestion) {
+    return res.status(400).json({ error: 'Suggestion is required' });
+  }
+
+  await db.read();
+  const newEntry = {
+    id: uuidv4(),
+    author: author || 'Anonymous',
+    suggestion,
+    date: new Date().toISOString()
+  };
+  db.data.suggestions.push(newEntry);
+  await db.write();
+  res.json({ message: 'Suggestion added', entry: newEntry });
+});
+
+// 9. GET all suggestions
+app.get('/api/suggestions', async (req, res) => {
+  await db.read();
+  res.json(db.data.suggestions);
+});
+
+// 10. Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
@@ -152,4 +222,13 @@ app.get('/api/health', (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Lingolang backend running on http://localhost:${PORT}`);
+});
+
+// GET /api/search?query=word
+app.get('/api/search', async (req, res) => {
+  const q = (req.query.query || '').toLowerCase();
+  await db.read();
+  const phrases = db.data.phrases.filter(p => p.text.toLowerCase().includes(q));
+  const cards   = (db.data.flashcards || []).filter(f => f.front.toLowerCase().includes(q));
+  res.json({ phrases, flashcards: cards });
 });
