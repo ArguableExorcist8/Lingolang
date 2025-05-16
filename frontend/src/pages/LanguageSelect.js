@@ -1,5 +1,6 @@
 // src/pages/LanguageSelect.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const continents = {
   Africa: ['Swahili', 'Hausa', 'Amharic', 'Igbo', 'Xhosa'],
@@ -11,6 +12,14 @@ const continents = {
 
 function LanguageSelect() {
   const [selected, setSelected] = useState([]);
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('lastSignup'));
+    if (saved && saved.user && saved.user.id) {
+      setUserId(saved.user.id);
+    }
+  }, []);
 
   const toggle = lang => {
     setSelected(prev =>
@@ -20,9 +29,19 @@ function LanguageSelect() {
     );
   };
 
-  const handleNext = () => {
-    console.log('Chosen languages:', selected);
-    alert(`You chose: ${selected.join(', ')}`);
+  const handleNext = async () => {
+    if (!userId) return alert('No user ID—please sign up first.');
+    try {
+      const res = await axios.post('/api/languages', {
+        userId,
+        languages: selected
+      });
+      console.log('Languages saved:', res.data);
+      alert('Languages saved successfully!');
+    } catch (err) {
+      console.error(err.response || err);
+      alert('Failed to save languages.');
+    }
   };
 
   return (

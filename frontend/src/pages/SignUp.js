@@ -1,18 +1,29 @@
 // src/pages/SignUp.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function SignUp() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    // For now: just log and go to languages
-    console.log({ name, email });
+const handleSubmit = async e => {
+  e.preventDefault();
+  try {
+    const res = await axios.post('/api/signup', { name, email });
+    console.log('Signup response:', res.data);
+    
+    // ✅ Save user to localStorage for use in LanguageSelect
+    localStorage.setItem('lastSignup', JSON.stringify(res.data));
+    
     navigate('/languages');
-  };
+  } catch (err) {
+    console.error('Signup error', err.response || err);
+    alert('Signup failed – check console for details.');
+  }
+};
+
 
   return (
     <div style={{ maxWidth: 400, margin: '2rem auto', fontFamily: 'sans-serif' }}>
