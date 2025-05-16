@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ReactCardFlip from 'react-card-flip';
+import { toggleFav, getFavs } from '../utils/favorites';
 
 function Flashcards() {
   const [cards, setCards] = useState([]);
@@ -9,9 +10,8 @@ function Flashcards() {
   const [isFlipped, setIsFlipped] = useState(false);
 
   useEffect(() => {
-    axios
-      .get('/api/flashcards')
-      .then((res) => setCards(res.data))
+    axios.get('/api/flashcards')
+      .then(res => setCards(res.data))
       .catch(console.error);
   }, []);
 
@@ -19,16 +19,11 @@ function Flashcards() {
     const card = cards[index];
     await axios.post(`/api/flashcards/${card.id}/review`, { quality });
     setIsFlipped(false);
-    setIndex((i) => i + 1);
+    setIndex(i => i + 1);
   };
 
-  const saveToFavorites = (word) => {
-    const existing = JSON.parse(localStorage.getItem('lingolang-favorites')) || [];
-    if (!existing.includes(word)) {
-      const updated = [...existing, word];
-      localStorage.setItem('lingolang-favorites', JSON.stringify(updated));
-    }
-  };
+  const currentWord = cards[index]?.front;
+  const isFav = currentWord && getFavs().includes(currentWord);
 
   if (index >= cards.length) {
     return (
@@ -41,7 +36,24 @@ function Flashcards() {
   const { front, back } = cards[index];
 
   return (
-    <div style={{ maxWidth: 400, margin: '2rem auto', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: 400, margin: '2rem auto', fontFamily: 'sans-serif', position: 'relative' }}>
+      {/* Favorite star */}
+      <button
+        onClick={() => toggleFav(front)}
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          background: 'none',
+          border: 'none',
+          fontSize: '1.5rem',
+          cursor: 'pointer'
+        }}
+        aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+      >
+        {isFav ? '★' : '☆'}
+      </button>
+
       <ReactCardFlip isFlipped={isFlipped} flipDirection="horizontal">
         <div
           key="front"
@@ -73,7 +85,6 @@ function Flashcards() {
       <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-around' }}>
         <button onClick={() => review(2)}>Again ❌</button>
         <button onClick={() => review(5)}>Good ✔️</button>
-        <button onClick={() => saveToFavorites(front)}>⭐ Save</button>
       </div>
     </div>
   );
