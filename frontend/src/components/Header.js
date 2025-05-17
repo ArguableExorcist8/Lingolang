@@ -1,7 +1,6 @@
-// src/components/Header.js
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MenuIcon, XIcon } from '@heroicons/react/outline';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import ThemeSwitcher from './ThemeSwitcher';
 
 export default function Header() {
@@ -10,10 +9,11 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Load & update streak + send review notification
+  // Load streak and show notification
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
     const { lastDate, count } = JSON.parse(localStorage.getItem('lingolang-streak') || '{}');
+
     if (lastDate === today) {
       setStreak(count);
     } else {
@@ -23,11 +23,13 @@ export default function Header() {
       setStreak(newCount);
     }
 
+    // Review notification
     (async () => {
       if ('Notification' in window && Notification.permission !== 'denied') {
-        const perm = await Notification.requestPermission();
-        if (perm !== 'granted') return;
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') return;
       }
+
       try {
         const res = await fetch('/api/flashcards');
         const due = await res.json();
@@ -37,13 +39,14 @@ export default function Header() {
             icon: '/favicon.ico'
           });
         }
-      } catch (e) {
-        console.error('Reminder fetch failed', e);
+      } catch (err) {
+        console.error('Reminder fetch failed:', err);
       }
     })();
   }, []);
 
-  const onSearch = e => {
+  // Search handler
+  const onSearch = (e) => {
     e.preventDefault();
     if (query.trim()) {
       navigate(`/search?query=${encodeURIComponent(query.trim())}`);
@@ -52,18 +55,19 @@ export default function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between flex-wrap p-4 bg-background-light dark:bg-background-dark shadow-sm font-sans">
-      {/* Left: Logo & Hamburger */}
+    <header className="flex flex-wrap items-center justify-between p-4 shadow bg-[var(--bg)] text-[var(--text)]">
+      {/* Left: Logo & Toggle */}
       <div className="flex items-center gap-3">
         <button className="md:hidden" onClick={() => setOpen(!open)}>
-          {open ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+          {open
+            ? <XMarkIcon className="h-6 w-6" />
+            : <Bars3Icon className="h-6 w-6" />
+          }
         </button>
-        <Link to="/" className="font-bold text-xl text-primary-dark dark:text-primary-light">
-          Lingolang
-        </Link>
+        <Link to="/" className="text-2xl font-bold">Lingolang</Link>
       </div>
 
-      {/* Middle: Nav */}
+      {/* Middle: Nav Links */}
       <nav className={`w-full md:flex md:items-center md:gap-6 md:w-auto ${open ? 'block' : 'hidden'}`}>
         <div className="flex flex-col md:flex-row gap-3 mt-4 md:mt-0">
           <Link to="/profile">👤 Profile</Link>
@@ -79,12 +83,17 @@ export default function Header() {
       <div className="flex items-center gap-3 mt-4 md:mt-0">
         <form onSubmit={onSearch} className="flex">
           <input
-            className="p-1 border rounded-l text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
+            className="p-1 border border-gray-300 rounded-l text-sm bg-white dark:bg-gray-800 text-black dark:text-white"
             placeholder="Search..."
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
           />
-          <button className="p-1 bg-primary-light dark:bg-primary rounded-r text-white">🔍</button>
+          <button
+            type="submit"
+            className="p-1 px-2 bg-[var(--primary)] text-white rounded-r"
+          >
+            🔍
+          </button>
         </form>
         <div className="text-sm">🔥 {streak} day{streak !== 1 ? 's' : ''}</div>
         <ThemeSwitcher />
